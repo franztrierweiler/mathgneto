@@ -1,67 +1,106 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Ce fichier fournit des instructions à Claude Code (claude.ai/code) pour travailler avec le code de ce dépôt.
 
-## Project purpose
+## Processus global
+
+```
+docs/SPEC-racine-*.md + extensions + fichiers annexes
+       |
+       v
+[1. Spécification]──correction──> 🖊️ sdd-uc-spec-write
+       |
+       v
+[2. Conception technique]───────> 📐 sdd-uc-system-design
+       |                            ├─> docs/ARCHITECTURE.md
+       |                            ├─> docs/DEPLOYMENT.md
+       |                            ├─> docs/SECURITY.md
+       |                            └─> docs/COMPLIANCE_MATRIX.md (si réglementaire)
+       |
+       v
+[3. Planification]────────────> 🗺️ /sdd-plan
+       |                            └─> plan/<lot>.md
+       |
+       v
+[4. Développement par lot]────> 🏗️ /sdd-dev-workflow <lot>
+       |                          (boucle implémentation / AC / tests)
+       |
+       v
+[5. QA par lot]───────────────> 🧪 /sdd-qa-workflow <lot>
+       |                          (plan de test, exécution, revue de code)
+       |
+       v
+[6. Livraison]
+```
+
+## Vue d'ensemble du projet
 
 This repo is a deliberate testbed for an agentic coding chain (Claude Code + Mistral Vibe). The "real" software in the repo — Cap'n Mathgnéto — is a 1995 educational clone of Cap'n Magneto (the 1985 Mac game by Al Evans), rewritten in ANSI C / X11 (Xlib, 1-bit black & white, 512×342 window). The game itself is preserved as-is in `archive-1995-2000/` and is the target the agent team works on; improving it is a *byproduct* of building the agent chain, not the primary goal.
-
-Two LinkedIn articles (linked from README.md) explain the motivation — read them before making sweeping changes to the agent workflow.
-
-## Repository layout
-
 - `archive-1995-2000/` — the original 1995 codebase (small ANSI C + Xlib game). All code lives here; the repo root contains only README/LICENSE/this file.
 - `archive-1995-2000/sprites/` — `.xbm` (X BitMap) sprite files, included at compile time by render code.
 - No build artifacts, no CI, no test suite — the project is intentionally a small, frozen target.
-
-## Building and running
-
+The archive files must not be modified. They are an historical snapshot.
 The game is built with the Makefile inside `archive-1995-2000/`:
-
 ```bash
 cd archive-1995-2000
 make                # builds ./mathgneto
 make clean          # removes *.o, the binary, and core dumps
 ./mathgneto         # runs the game; needs an X display
 ```
+# Structure de la documentation
+Toujours consulter ces documents avant d'implémenter ou de modifier une fonctionnalité. Les exigences ont des niveaux de priorité (Critique, Important) qui guident l'ordre d'implémentation.
 
-Dependencies: `gcc` and `libx11-dev` (Xlib). On Debian/Ubuntu: `apt-get install libx11-dev`. Compile flags assume `/usr/X11R6/{include,lib}` — on modern distros X11 usually resolves through the default include/lib paths but the legacy paths are still respected.
+La documentation évolue au fur et à mesure des phases d'exécution du projet.
 
-There is **no test suite, no linter, no formatter** configured. "Testing" means compiling cleanly with `-Wall` and running the game.
+## Méthode de travail pour ce projet
 
-## Architecture (the "big picture" across modules)
+### Travail au sein de l'équipe
+1- La spec racine (SPEC-racine-*.md) et ses éventuelles extensions (SPEC-extension-*.md) constituent les documents de référence. Ils sont utilisés en entrée du skill sdd-uc-system-design lors de la phase de mise au point. Si besoin, le skill sdd-uc-spec-write permet de corriger la spécification ou de créer des extensions.
+2- Le skill sdd-uc-system-design est utilisé pour produire les fichiers de conception technique.
+3- La planification est utilisée si et seulement si les fichiers de conception technique sont disponibles.
 
-The game is a single-binary X11 app with one big event loop in `main.c` and six clearly split modules. Understanding how they fit together matters because the modules deliberately share global state.
+### Rôle de Claude Code
+1- Claude Code agit en tant qu'ingénieur développeur qui collabore étroitement avec la personne qui pilote le projet
+2- Non seulement Claude Code produit du code mais il assiste le pilote du projet dans ses tâches de conception et de déroulement du projet
+3- Lorsque le pilote du projet propose des solutions techniques, des architectures, Claude Code le "challenge" en ayant en tête toutes les contraintes du projet
+4- Claude Code propose des solutions techniques en les éclairant à travers le prisme des coûts de fonctionnement et de la pérennité
 
-### Event loop and shared state
+## Règles pour Claude Code
 
-`main.c` owns:
-- The `XPending` / `XNextEvent` loop (handles `Expose`, `ButtonPress`, `KeyPress`, `ConfigureNotify`).
-- The `struct joueur joueur` global — defined here, declared `extern` in `types.h`, mutated from `input.c`, `combat.c`, `quiz.c`, and rendered from `render.c`.
-- Game-state transitions driven by reading the global `etat_jeu` (defined in `input.c`, declared `extern` in `input.h`). The states are `ST_EXPLORE | ST_COMBAT | ST_QUIZ | ST_DIALOG | ST_GAMEOVER | ST_WIN` (see `types.h`).
-- Win/lose detection: `hp <= 0` → `ST_GAMEOVER`; `score >= 100` → `ST_WIN` (the score-100 check is the V1 proxy for "found the Crown of Control").
-- Frame pacing via `usleep(33333)` (~30 FPS). Rendering is gated by a local `redraw` flag — modules don't draw themselves, they set the flag and `main.c` decides what to call.
+### Au démarrage
+1- Ce projet suit la méthodologie **Spec Driven Development (SDD)**. Rappeler ce cadre méthodologique à l'utilisateur dès que la session démarre.
+2- Inviter systématiquement l'utilisateur à lancer `/sdd-brief` avant toute autre action pour charger le contexte complet du projet.
 
-### Module responsibilities
+### En cours d'utilisation
+1- A chaque ajout d'un nouveau fichier MD structurant pour le projet, vérifier que CLAUDE.md est bien à jour.
+2- Indiquer que le fichier CLAUDE.md a été mis à jour.
 
-- **`render.c` / `render.h`** — All Xlib calls. Owns the `Display *dpy`, `Window win`, `GC gc`, `XFontStruct *fnt` globals (others read them via `extern`). Also computes and exports the hitbox arrays (`verbe_x/y/w/h`, `compass_x/y/r`, `qcm_x/y/w/h`) so input code can hit-test without re-knowing layout. Each game state has its own `render_*` entry point; `main.c` chooses which to call.
-- **`input.c` / `input.h`** — `hit_test(mx,my)` maps a click to a region code (`HIT_NORD`, `HIT_VERBE+i`, `HIT_QCM+i`, `HIT_GAME`, …). `on_click()` consumes that and mutates `joueur` / `etat_jeu`. This is the only place where verbs (`V_WALK`, `V_JUMP`, `V_GET`, …) get acted on.
-- **`world.c` / `world.h`** — Tile maps, walkability, entity and object lookup. **Important quirk**: the maps live in `maps.h` as `static char map_outdoor[…]` etc., so each `.c` that includes `maps.h` gets its own private copy. That was a deliberate workaround for linker complaints in 1995 — duplication is intentional, don't "fix" it by moving to globals without understanding the original constraint.
-- **`combat.c` / `combat.h`** — Turn-based combat triggered when the player walks into a hostile entity. `combat.h` defines its own `typedef unsigned char Boolean` (legacy from the Think C Mac port) and a `NB_ENNEMIS_MAX` constant that duplicates `world.h`'s `MAX_PNJ` (also intentional historical duplication — see comment in `main.c`).
-- **`quiz.c` / `quiz.h` / `questions.h`** — The "lieux de connaissance" variant: temples (`T_TEMPLE`/`'X'` tiles) trigger multiple-choice math questions. Four difficulty tiers (`NIV_COLLEGE | NIV_LYCEE | NIV_PREPA | NIV_INGE`), ~20 questions each, hardcoded as `static struct question` arrays in `questions.h`. The pick algorithm marks seen questions in a bitset and avoids repeats until the level is exhausted. Correct → score + HP bonus; wrong → HP penalty.
+### En interaction avec le pilote de projet lors de la phase de conception, de planification, de tests locaux et de déploiement
 
-### Verbs and input model
+#### Planification
+1- Lors d'une demande de planification, documenter chaque lot dans un fichier spécifique : `plan/<nom-lot>.md` (incluant le numéro du lot)
+2- Mettre à jour la progression des tâches dans les fichiers `plan/` correspondants après chaque implémentation
+3- Mettre à jour les tableaux d'AC dans les fichiers `plan/` correspondants après chaque implémentation et test unitaire
 
-The Mac-style verb-based UI is the structural axis of `input.c`: the player picks a verb (Walk / Jump / Fly / Get / Drop / Identify / Status / Z Gate) by clicking the right-hand panel, then clicks the compass or a tile to apply it. `V_STATUS` is special — it overlays a status panel instead of acting on the world (handled in `main.c`'s render branch). Adding a new verb means: add a `V_XXX` constant in `types.h`, bump `NB_VERBES`, lay out the button in `render.c`, and dispatch it in `input.c`'s `on_click`.
+#### Recettes de test (QA)
+Le processus QA est piloté par `/sdd-qa-workflow <lot>`.
 
-## Conventions to respect when modifying the game
 
-This is **legacy code preserved as historical artifact** as much as it is a working program. Before "cleaning up" or "modernizing":
+#### Commandes
+1- Utiliser toujours les commandes Makefile pour les instructions à l'utilisateur (`make test`, `make lint`, `make run`, etc.) plutôt que les commandes brutes (`python`, `pytest`, `ruff`)
+2- Le fichier Makefile est la référence pour installer, tester, linter, exécuter, etc
+3- Au démarrage, afficher qu'un Makefile existe avec la commande permettant d'afficher l'aide
 
-- **Comments and identifiers are in French (Latin-1, no accents in source).** Keep that style — `joueur`, `verbe_actif`, `carte`, `etat_jeu`, etc. The no-accents rule is a deliberate Mac/Unix interop choice from the original author; don't reintroduce accented characters in source code.
-- **Pre-ANSI/K&R-era idioms are preserved on purpose**: `int main()` with no `void` parameter, `(void)var;` casts to silence warnings, `typedef unsigned char Boolean` alongside `int`-booleans, `usleep()` rather than something more modern. Comments throughout reference *K&R 2e ed* chapters as the source of techniques — that's part of the artifact.
-- **The known bugs in `LISEZMOI.TXT`** (map wrap glitches near doors, NPC stuck-in-wall, startup pixmap leaks, no sound, no title screen, no save) are documented and known. If you fix one, update `LISEZMOI.TXT` to match.
-- **Globals are intentional**, not a mistake to refactor away: `joueur`, `etat_jeu`, the Xlib display globals, and the duplicated-static map arrays are load-bearing for the original design. Touch them only with the user's explicit OK.
-- **No build system beyond the Makefile, no headers split into pub/priv, no abstraction layers.** Match that.
+### Workflow de développement
+Le workflow de développement est piloté par `/sdd-dev-workflow <lot>`.
 
-When the user asks for "improvements", default to surgical, in-style changes — not refactors toward modern C.
+### Nommage des branches git
+1- Développement sur la branche `main` avec Claude Code
+2- le pilote du projet donne instruction s'il est nécessaire de "git branch" pour expérimenter sur une branche dédiée
+3- Si une autre méthode que celle décrite ici est explicitement utilisée, proposer de basculer la production de code sur une branche expérimentale.
+
+### Commits
+1- Ne pas ajouter "Co-Authored-By: Claude" dans les messages de commit
+2- Ne pas ajouter "Generated with Claude Code" dans les messages de commit
+3- Ne jamais commiter des fichiers qui n'ont pas subi de tests unitaires avec une réussite à 100%
+

@@ -1,0 +1,141 @@
+Captain Mathgneto - clone X11 de Cap'n Magneto
+================================================
+
+F.T. - Octobre - Novembre 1995
+(mise a jour decembre 2000 pour Linux)
+
+
+Origine du nom
+--------------
+
+Vu que j'ai rajoute des questions de maths dans les temples,
+j'ai trouve marrant d'appeler ca Mathgneto.
+(oui je sais c'est nul comme jeu de mot)
+
+
+Description
+-----------
+
+Ce jeu est un clone X11 / Xlib en noir et blanc 1-bit du jeu
+"Cap'n Magneto" de Al Evans, sorti sur Macintosh en 1985.
+
+Le pitch est le meme : un ranger spatial atterrit sur une planete
+hostile pour recuperer la "Crown of Control", un artefact qui peut
+soumettre des esprits, et qu'un mechant Imperator a vole pour
+asservir les Humanoides locaux. Il faut explorer, parler aux
+Humanoides amicaux, eviter ou combattre les patrouilles de gardes
+aliens, et trouver la Crown.
+
+J'ai change le nom du heros en Fritz Mathgneto parce que ca sonnait
+plus marrant avec Mathgneto, et puis Fritz comme F.T., voila :)
+
+J'ai ajoute une variante perso ("lieux de connaissance") : a la place
+de certains lieux du jeu original, il y a des Temples du Savoir ou
+on tombe sur un QCM de maths. Reponse juste = bonus de score et HP,
+reponse fausse = on perd des HP. C'est un peu cheap mais ca
+permet de reviser, et ca rentre tres bien dans le theme du jeu.
+
+
+Compilation
+-----------
+
+Sur RS/6000 AIX 4.1 (machine de l'ecole) :
+    make
+    (utilise cc et X11R6 fourni avec AIX)
+
+Sur Linux Debian 2.2 Potato (machine perso, depuis decembre 2000) :
+    make
+    (utilise gcc, le code ANSI C n'a pas eu besoin d'etre touche)
+
+Dependance : il faut Xlib (libx11) installee. Sur les Debian
+modernes, faire "apt-get install libx11-dev" avant.
+
+
+Utilisation
+-----------
+
+    ./mathgneto
+
+La fenetre fait 512 par 342 pixels, comme l'ecran d'un Mac classique.
+Touche q ou Echap pour quitter (au cas ou).
+
+
+Controles
+---------
+
+Tout a la souris ! Comme dans le jeu original Mac.
+
+  - Compass rose en haut a droite (un losange) :
+    cliquer une des 4 directions pour deplacer Fritz d'une case
+    (Nord, Sud, Est, Ouest).
+
+  - Boutons des verbes a droite :
+    Walk, Jump, Fly, Get, Drop, Identify, Status, Z Gate.
+    Cliquer pour selectionner le verbe actif. Le verbe selectionne
+    apparait en noir/blanc inverse (comme dans Cap'n Magneto).
+
+  - QCM (dans les Temples du Savoir) :
+    4 zones rectangulaires cliquables, les 4 reponses A B C D.
+
+Pas de raccourci clavier en V1 (sauf q pour quitter).
+
+
+Variante "lieux de connaissance"
+---------------------------------
+
+4 niveaux de difficulte pour les QCM :
+
+  - College    : niveau 6e a 3e (arithmetique, geom. de base)
+  - Lycee Bac  : programme S des annees 90 (deriv., integ., complexes)
+  - Lycee Prepa: MPSI / MP (algebre lineaire, structures, topologie)
+  - Ingenierie : Bac+5 (analyse fine, codes correcteurs, FFT...)
+
+Chaque niveau a une vingtaine de questions en V1. Le tirage evite
+les repetitions tant qu'on n'a pas vu toutes les questions du niveau.
+
+
+Bugs connus / TODO
+------------------
+
+- Le wrap de carte est parfois bizarre quand on traverse une porte.
+- Les PNJ amicaux se coincent dans les murs si on bouge trop vite.
+- Quelques fuites memoire au demarrage (pixmaps non liberees), mais
+  rien qui grossit en cours de partie.
+- TODO : ajouter le son quand j'aurai compris comment marche
+  l'audio AIX. Pour l'instant pas de son.
+- TODO : ecran titre / menu principal (la on demarre direct
+  sur la carte exterieure).
+- TODO : sauvegarde sur fichier (j'ai lu le K&R chap 7 mais
+  pas eu le temps).
+
+
+Notes de developpement
+----------------------
+
+Demarre debut octobre 1995, le soir et le week-end a l'ecole.
+
+Partie graphique X11 : ecrite sur les RS/6000 de l'ecole
+(salle libre-service, IBM AIX 4.1 avec X11R6 fourni).
+
+Grosse partie de la logique (combat, QCM, cartes, questions
+de maths) ecrite chez moi pendant les vacances de la Toussaint
+sur mon Mac LC III avec Think C.
+
+Integre et finalise sur AIX a la rentree, avec quelques galeres
+de fins de ligne CR/LF entre Mac et Unix. (tr '\r' '\n' < f.c > f2.c
+en boucle.) Encodage : Latin-1 partout, je n'ai pas mis d'accents
+dans les chaines C pour eviter les surprises avec MacRoman.
+
+Le K&R 2e ed (le Kernighan-Ritchie en francais chez Masson) a
+tourne en permanence sur le bureau. Y'a plein de bouts de code
+recopies dedans, c'est le meilleur livre du monde.
+
+Recompile en decembre 2000 sur ma Debian a la maison apres avoir
+retrouve la disquette de sauvegarde - 5 ans apres ! Passage de
+cc a gcc, le code ANSI a tenu sans modif.
+
+
+C'est mon premier vrai projet en C un peu serieux. Y'a surement
+des fuites memoire et des trucs un peu sales mais bon, ca tourne.
+
+F.T.

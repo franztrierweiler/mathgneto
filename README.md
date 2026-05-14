@@ -1,5 +1,7 @@
-# mathgneto
+# mathgneto - Cap'n Mathgnéto
 Un clone éducatif de Cap'n Magneto écrit en C pour X11 en 1995 et utilisé en 2026 comme cible par une équipe d'agents de codage.
+
+<img width="512" height="342" alt="1243-5-cap-n-magneto" src="https://github.com/user-attachments/assets/5d2abe17-e520-41cb-89b3-b748d42b880c" />
 
 Le but premier de ce projet n'est pas de continuer Cap'n Mathgnéto mais de mettre au point une chaine agentique sous Claude Code et Mistral Vibe. Par induction, il améliore aussi le projet initial car j'utilise la chaine agentique pour améliorer le logiciel initial.
 
